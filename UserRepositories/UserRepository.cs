@@ -1,6 +1,5 @@
 ﻿using DatabaseHelper;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Linq;
 using User.Domain;
 using UserDomain.Repositories;
@@ -23,36 +22,22 @@ namespace UserRepositories
 
         public void UpdateUser(UserEntity user)
         {
-            try
+            using (var context = new ApiContext(_options))
             {
-                using (var context = new ApiContext(_options))
-                {
-                    context.Users.Update(user);
-                    context.SaveChanges();
-                }
-            }
-            catch (Exception ex)
-            {
-                throw;
+                context.Users.Update(user);
+                context.SaveChanges();
             }
         }
 
         public UserEntity SelectUser(string email)
         {
-            try
+            using (var context = new ApiContext(_options))
             {
-                using (var context = new ApiContext(_options))
-                {
-                    UserEntity result = context.Users
-                                            .Where(s => s.Email.Equals(email))
-                                            .Include(u => u.Phones)
-                                            .FirstOrDefault();
-                    return result;
-                }
-            }
-            catch (Exception ex)
-            {
-                return null;
+                UserEntity result = context.Users
+                                        .Where(s => s.Email.Equals(email))
+                                        .Include(u => u.Phones)
+                                        .FirstOrDefault();
+                return result;
             }
         }
     }

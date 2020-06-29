@@ -1,9 +1,5 @@
 ﻿using Crosscutting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using User.Domain;
@@ -26,36 +22,38 @@ namespace UserRESTFULapi.Controllers
         [HttpPost("signup")]
         public IActionResult Signup([FromBody] UserEntity user)
         {
-            foreach(var modelError in ModelState)
+            if (CheckFieldsError())
             {
-                if (modelError.Value.Errors.Count > 0)
-                {
-                    return BadRequest();
-                }
+                return BadRequest(ErrorResponse.CreateErrorResponse("Invalid fields", 3));
             }
 
-            if (user == null || string.IsNullOrWhiteSpace(user.Email) || string.IsNullOrWhiteSpace(user.FirstName) || string.IsNullOrWhiteSpace(user.LastName) || string.IsNullOrWhiteSpace(user.Password) || user.Phones.Any(p => p.AreaCode == 0 || p.CountryCode == null || p.Number == 0) || user.Phones.Count == 0)
+            if (user == null || string.IsNullOrWhiteSpace(user.Email) || string.IsNullOrWhiteSpace(user.FirstName) ||
+                string.IsNullOrWhiteSpace(user.LastName) || string.IsNullOrWhiteSpace(user.Password) || user.Phones == null ||
+                user.Phones.Any(p => p.AreaCode == 0 || p.CountryCode == null || p.Number == 0) || user.Phones.Count == 0)
             {
-                return BadRequest(Crosscutting.Response.CreateErrorResponse("Missing fields", 4));
+                return BadRequest(ErrorResponse.CreateErrorResponse("Missing fields", 4));
             }
             else if (!new EmailAddressAttribute().IsValid(user.Email))
             {
-                return BadRequest(Crosscutting.Response.CreateErrorResponse("Invalid fields", 3));
+                return BadRequest(ErrorResponse.CreateErrorResponse("Invalid fields", 3));
             }
             else
             {
-                user.CreatedAt = DateTime.Now;
-                Crosscutting.Response result = _userService.Signup(user);
-                return Ok(result);
+                return Ok(_userService.Signup(user));
             }
         }
 
         [HttpPost("signin")]
         public IActionResult Signin([FromBody] CredentialsModel credentials)
         {
-            if (string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
+            if (CheckFieldsError())
             {
-                return BadRequest(Crosscutting.Response.CreateErrorResponse("Missing fields", 4));
+                return BadRequest(ErrorResponse.CreateErrorResponse("Invalid fields", 3));
+            }
+
+            if (credentials == null || string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
+            {
+                return BadRequest(ErrorResponse.CreateErrorResponse("Missing fields", 4));
             }
 
             UserEntity user = _userService.Signin(credentials.Email, credentials.Password);
@@ -75,7 +73,7 @@ namespace UserRESTFULapi.Controllers
             }
             else
             {
-                return Ok(Crosscutting.Response.CreateErrorResponse("Invalid e-mail or password", 5));
+                return Ok(ErrorResponse.CreateErrorResponse("Invalid e-mail or password", 5));
             }
         }
 
@@ -84,14 +82,38 @@ namespace UserRESTFULapi.Controllers
         {
             string userEmail = Request.Headers["Authorization"].ToString();
 
-            if (userEmail == null)
+            if (string.IsNullOrEmpty(userEmail))
             {
-                return Unauthorized(Crosscutting.Response.CreateErrorResponse("Unauthorized",6));
+                return Unauthorized(ErrorResponse.CreateErrorResponse("Authorization header required", 7));
             }
 
-            Crosscutting.Response loggedUser = _userService.LoggedUser(userEmail);
+            if (userEmail == null)
+            {
+                return Unauthorized(ErrorResponse.CreateErrorResponse("Unauthorized", 6));
+            }
 
-            return Unauthorized(loggedUser);
+            dynamic loggedUser = _userService.LoggedUser(userEmail);
+
+            if (loggedUser.GetType().Name == "ErrorResponse")
+            {
+                return Unauthorized(loggedUser);
+            }
+            else
+            {
+                return Ok(loggedUser);
+            }
+        }
+
+        private bool CheckFieldsError()
+        {
+            foreach (var modelError in ModelState)
+            {
+                if (modelError.Value.Errors.Count > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

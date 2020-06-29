@@ -29,6 +29,7 @@ namespace UserRESTFULapi
             services.AddDbContext<ApiContext>(option => option.UseInMemoryDatabase("ApiDb"));
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IErrorResponse, ErrorResponse>();
             services.AddScoped<IResponse, Response>();
             services.AddControllers().ConfigureApiBehaviorOptions(options =>
             {

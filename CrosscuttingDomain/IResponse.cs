@@ -1,11 +1,14 @@
-﻿using System;
-
-namespace CrosscuttingDomain
+﻿namespace CrosscuttingDomain
 {
     public interface IResponse
     {
         string Message { get; }
-        public int? ErrorCode { get; }
+    }
+
+    public interface IErrorResponse
+    {
+        string Message { get; }
+        int ErrorCode { get; }
     }
 
     public interface IResponse<T> : IResponse

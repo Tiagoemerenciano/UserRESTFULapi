@@ -15,16 +15,17 @@ namespace UserServices
             _userRepository = userRepository;
         }
 
-        public Response Signup(UserEntity user)
+        public dynamic Signup(UserEntity user)
         {
 
             UserEntity emailRegistered = _userRepository.SelectUser(user.Email);
 
             if (emailRegistered != null)
             {
-                return Response.CreateErrorResponse("E-mail already exists", 1);
+                return ErrorResponse.CreateErrorResponse("E-mail already exists", 1);
             }
 
+            user.CreatedAt = DateTime.Now;
             _userRepository.InsertUser(user);
 
             return Response.CreateResponse("Success");
@@ -48,9 +49,14 @@ namespace UserServices
             }
         }
 
-        public Response LoggedUser(string email)
+        public dynamic LoggedUser(string email)
         {
             UserEntity user = _userRepository.SelectUser(email);
+
+            if (user == null)
+            {
+                return ErrorResponse.CreateErrorResponse("User not found", 5);
+            }
 
             if (user.LastLogin.AddMinutes(5) > DateTime.Now)
             {
@@ -58,7 +64,7 @@ namespace UserServices
             }
             else
             {
-                return Response.CreateErrorResponse("Unauthorized - invalid session", 2);
+                return ErrorResponse.CreateErrorResponse("Unauthorized - invalid session", 2);
             }
 
         }
